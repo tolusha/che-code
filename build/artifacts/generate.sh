@@ -90,7 +90,7 @@ makeAllPackageLockJson () {
   find . -name "package-lock.json" ! -path "${ALL_PACKAGES_LOCK_JSON}" | sort | while read file; do
     echo "[INFO] Processing file: $file"
 
-    jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package.json
+    jq -S '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package.json
     OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
   done
 
@@ -112,7 +112,6 @@ checkUrlExistence() {
 }
 
 run() {
-  jq --version
   makeArtifactsLockYaml
   makeAllPackageLockJson
 }
