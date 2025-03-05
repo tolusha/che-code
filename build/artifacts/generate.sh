@@ -15,8 +15,10 @@ set -e
 SCRIPT_DIR=$(dirname "$0")
 ROOT_DIR=$(realpath "$SCRIPT_DIR/../..")
 ARTIFACTS_LOCK_YAML="$SCRIPT_DIR/artifacts.lock.yaml"
+ALL_PACKAGES_LOCK_JSON="$SCRIPT_DIR/package-lock.json"
+ALL_PACKAGES_JSON="$SCRIPT_DIR/package.json"
 
-run () {
+makeArtifactsLockYaml () {
   rm -f $ARTIFACTS_LOCK_YAML
 
   echo "---"                >> "$ARTIFACTS_LOCK_YAML"
@@ -35,7 +37,7 @@ run () {
     if [[ ! $SHA256 == "null" ]]; then
       FILENAME="$PLUGIN.$VERSION.vsix"
       DOWNLOAD_URL="$REPOSITORY/releases/download/v$VERSION/$FILENAME"
-      check_existance "$DOWNLOAD_URL"
+      checkUrlExistence "$DOWNLOAD_URL"
 
       echo "  # $PLUGIN"                      >> "$ARTIFACTS_LOCK_YAML"
       echo "  - download_url: $DOWNLOAD_URL"  >> "$ARTIFACTS_LOCK_YAML"
@@ -66,7 +68,7 @@ run () {
     esac
 
     DOWNLOAD_URL="https://github.com/microsoft/ripgrep-prebuilt/releases/download/${RG_VERSION}/ripgrep-${RG_VERSION}-${RG_ARCH_SUFFIX}.tar.gz"
-    check_existance "$DOWNLOAD_URL"
+    checkUrlExistence "$DOWNLOAD_URL"
 
     read -r SHA256 rest <<< "$(curl -sL "$DOWNLOAD_URL" | shasum -a 256)"
 
@@ -76,16 +78,51 @@ run () {
     echo "    checksum: sha256:$SHA256"       >> "$ARTIFACTS_LOCK_YAML"
   done
 
-  echo "[INFO] Done"
+  echo "[INFO] Completed ${ARTIFACTS_LOCK_YAML}"
 }
 
-check_existance() {
+# Combine all package-lock.json files into a single file
+# based on the package.json in the root directory
+makeAllPackageLockJson () {
+  pushd "$ROOT_DIR" > /dev/null
+
+  jq '. | del(.packages."")' package-lock.json > "${ALL_PACKAGES_LOCK_JSON}"
+  find . -name "package-lock.json" ! -path "${ALL_PACKAGES_LOCK_JSON}" | while read file; do
+    echo "[INFO] Processing file: $file"
+
+    # Remove empty package, add origin
+    jq --arg filename "$file" '.packages | del(."") | . |= with_entries(.value.origin = {location: $filename, resolved: .value.resolved})' "$file" > /tmp/package-lock.json
+
+    # Add filename to package name
+    OUTPUT=$(jq --arg filehash "$(echo $file | sha256sum | awk '{print $1}')"  'to_entries | map({"\(.key)-\($filehash)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
+
+    # Merge all package-lock.json files
+    OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package-lock.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
+
+    # Sorting
+    OUTPUT=$(jq -S '.' "${ALL_PACKAGES_LOCK_JSON}") && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
+  done
+
+  echo "[INFO] Completed ${ALL_PACKAGES_LOCK_JSON}"
+
+  jq '. | del(.scripts)' package.json > "${ALL_PACKAGES_JSON}"
+  echo "[INFO] Completed ${ALL_PACKAGES_JSON}"
+
+  popd > /dev/null
+}
+
+checkUrlExistence() {
   if curl -sfILo/dev/null "$1"; then
     echo "[INFO] Valid url: $1"
   else
     echo "[ERROR] Invalid url: $1"
     exit 1
   fi
+}
+
+run() {
+  makeArtifactsLockYaml
+  makeAllPackageLockJson
 }
 
 run
