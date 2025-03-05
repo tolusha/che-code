@@ -90,12 +90,19 @@ makeAllPackageLockJson () {
   find . -name "package-lock.json" ! -path "${ALL_PACKAGES_LOCK_JSON}" | while read file; do
     echo "[INFO] Processing file: $file"
 
+    # Remove empty package, add origin field the same as resolved one
     jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package.json
+
+    # Add version to the key
+    OUTPUT=$(jq 'to_entries | map({("\(.key)-\(.value.version)") : .value}) | add' /tmp/package.json) && echo -n "${OUTPUT}" > /tmp/package.json
+
+    # Merge all package-lock.json files
     OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
+
+    # Sorting
     OUTPUT=$(jq -S '.' "${ALL_PACKAGES_LOCK_JSON}") && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
   done
 
-  cat ${ALL_PACKAGES_LOCK_JSON}
   echo "[INFO] Completed ${ALL_PACKAGES_LOCK_JSON}"
 
   jq '. | del(.scripts)' package.json > "${ALL_PACKAGES_JSON}"
