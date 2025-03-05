@@ -91,13 +91,13 @@ makeAllPackageLockJson () {
     echo "[INFO] Processing file: $file"
 
     # Remove empty package, add origin field the same as resolved one
-    jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package.json
+    jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package-lock.json
 
     # Add version to the key
-    OUTPUT=$(jq 'to_entries | map({("\(.key)-\(.value.version)") : .value}) | add' /tmp/package.json) && echo -n "${OUTPUT}" > /tmp/package.json
+    OUTPUT=$(jq 'to_entries | map({"\(.key)-\(.value.version)-\(.value.integrity | @base64)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
 
     # Merge all package-lock.json files
-    OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
+    OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package-lock.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
 
     # Sorting
     OUTPUT=$(jq -S '.' "${ALL_PACKAGES_LOCK_JSON}") && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
