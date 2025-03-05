@@ -95,6 +95,7 @@ makeAllPackageLockJson () {
     OUTPUT=$(jq -S '.' "${ALL_PACKAGES_LOCK_JSON}") && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
   done
 
+  cat ${ALL_PACKAGES_LOCK_JSON}
   echo "[INFO] Completed ${ALL_PACKAGES_LOCK_JSON}"
 
   jq '. | del(.scripts)' package.json > "${ALL_PACKAGES_JSON}"
