@@ -112,6 +112,7 @@ checkUrlExistence() {
 }
 
 run() {
+  jq --version
   makeArtifactsLockYaml
   makeAllPackageLockJson
 }
