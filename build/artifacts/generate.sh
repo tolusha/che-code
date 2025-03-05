@@ -93,8 +93,8 @@ makeAllPackageLockJson () {
     # Remove empty package, add origin field the same as resolved one
     jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package-lock.json
 
-    # Add version to the key
-    OUTPUT=$(jq 'to_entries | map({"\(.key)-\(.value.version)-\(.value.integrity | @base64)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
+    # Add filename to package name
+    OUTPUT=$(jq --arg filename "$file"  'to_entries | map({"\(.key)-\($filename)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
 
     # Merge all package-lock.json files
     OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package-lock.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
@@ -121,7 +121,7 @@ checkUrlExistence() {
 }
 
 run() {
-  makeArtifactsLockYaml
+  #makeArtifactsLockYaml
   makeAllPackageLockJson
 }
 
