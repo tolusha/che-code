@@ -90,11 +90,11 @@ makeAllPackageLockJson () {
   find . -name "package-lock.json" ! -path "${ALL_PACKAGES_LOCK_JSON}" | while read file; do
     echo "[INFO] Processing file: $file"
 
-    # Remove empty package, add origin field the same as resolved one
-    jq '.packages | del(."") | . |= with_entries(.value.origin = .value.resolved)' "$file" > /tmp/package-lock.json
+    # Remove empty package, add origin
+    jq --arg filename "$file" '.packages | del(."") | . |= with_entries(.value.origin = {location: $filename, resolved: .value.resolved})' "$file" > /tmp/package-lock.json
 
     # Add filename to package name
-    OUTPUT=$(jq --arg filename "$file"  'to_entries | map({"\(.key)-\($filename)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
+    OUTPUT=$(jq --arg filehash "$(echo $file | sha256sum | awk '{print $1}')"  'to_entries | map({"\(.key)-\($filehash)": .value}) | add' /tmp/package-lock.json) && echo -n "${OUTPUT}" > /tmp/package-lock.json
 
     # Merge all package-lock.json files
     OUTPUT=$(jq '.packages += input' "${ALL_PACKAGES_LOCK_JSON}" /tmp/package-lock.json) && echo -n "${OUTPUT}" > "${ALL_PACKAGES_LOCK_JSON}"
@@ -121,7 +121,7 @@ checkUrlExistence() {
 }
 
 run() {
-  #makeArtifactsLockYaml
+  makeArtifactsLockYaml
   makeAllPackageLockJson
 }
 
