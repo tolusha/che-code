@@ -48,13 +48,16 @@ function log(...messages: string[]): void {
 }
 
 function getExtensionPath(extension: IExtensionDefinition): string {
-	return path.join(root, '.build', 'builtInExtensions', extension.name);
+	const p = path.join(root, '.build', 'builtInExtensions', extension.name);
+	console.log('>>>>>>>>>>>>>>>>>>>> path: ', p);
+	return p
 }
 
 function isUpToDate(extension: IExtensionDefinition): boolean {
 	const packagePath = path.join(getExtensionPath(extension), 'package.json');
 
 	if (!fs.existsSync(packagePath)) {
+		console.log('>>>>>>>>>>>>>>>>>>>> !fs.existsSync(packagePath)');
 		return false;
 	}
 
@@ -62,6 +65,7 @@ function isUpToDate(extension: IExtensionDefinition): boolean {
 
 	try {
 		const diskVersion = JSON.parse(packageContents).version;
+		console.log('>>>>>>>>>>>>>>>>>>>> diskVersion: ', diskVersion);
 		return (diskVersion === extension.version);
 	} catch (err) {
 		return false;
@@ -70,9 +74,10 @@ function isUpToDate(extension: IExtensionDefinition): boolean {
 
 function getExtensionDownloadStream(extension: IExtensionDefinition) {
 	let input: Stream;
-
+	console.log('>>>>>>>>>>>>>>>>>>>> getExtensionDownloadStream');
 	if (extension.vsix) {
 		input = ext.fromVsix(path.join(root, extension.vsix), extension);
+		console.log('>>>>>>>>>>>>>>>>>>>> input: ', input);
 	} else if (productjson.extensionsGallery?.serviceUrl) {
 		input = ext.fromMarketplace(productjson.extensionsGallery.serviceUrl, extension);
 	} else {

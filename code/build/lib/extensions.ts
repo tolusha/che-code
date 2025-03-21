@@ -234,6 +234,7 @@ export function fromMarketplace(serviceUrl: string, { name: extensionName, versi
 
 	const [publisher, name] = extensionName.split('.');
 	const url = `${serviceUrl}/publishers/${publisher}/vsextensions/${name}/${version}/vspackage`;
+	console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>> url:', url);
 
 	fancyLog('Downloading extension:', ansiColors.yellow(`${extensionName}@${version}`), '...');
 
